@@ -150,7 +150,7 @@ $(document).ready(function() {
         .text(score);
         
         player = Crafty.e('2D, Canvas, player, RightControls, Hero, Animate, Collision')
-        .attr({re
+        .attr({
             x: 160, 
             y: 160, 
             z: 1
