@@ -1,5 +1,6 @@
 $(document).ready(function() {
     var round = 1;
+    var score = 0;
     Crafty.init(800, 576);
     Crafty.canvas.init();
     Crafty.sprite(32, "img/game_32.png", {
@@ -52,9 +53,9 @@ $(document).ready(function() {
             this.requires("SpriteAnimation, Collision")
             .animate("walk_left", [[6,1], [7,1], [8,1]])
             .animate("walk_left", 3, -1)
-//            .animate("walk_right", [[6,2], [7,2], [8,2]])
-//            .animate("walk_up", [[6,3], [7,3], [8,3]])
-//            .animate("walk_down", [[6,0], [7,0], [8,0]])
+            //            .animate("walk_right", [[6,2], [7,2], [8,2]])
+            //            .animate("walk_up", [[6,3], [7,3], [8,3]])
+            //            .animate("walk_down", [[6,0], [7,0], [8,0]])
             .bind("NewDirection",
                 function (direction) {
                     if (direction.x < 0) {
@@ -138,10 +139,18 @@ $(document).ready(function() {
             console.log(e);
         });
         generateWorld();
-        
+        Crafty.e("Score, DOM, 2D, Text")
+        .attr({
+            x: 20, 
+            y: 20, 
+            w: 100, 
+            h: 20, 
+            score: 0
+        })
+        .text(score);
         
         player = Crafty.e('2D, Canvas, player, RightControls, Hero, Animate, Collision')
-        .attr({
+        .attr({re
             x: 160, 
             y: 160, 
             z: 1
@@ -164,11 +173,14 @@ $(document).ready(function() {
                     this.y += this.dY;
                     if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
                         this.destroy();
-                        console.log('removeu o bullet')
+                        score--;
                     }
                 })
                 .onHit('Enemy', function (e) {
-                    console.log(e);
+                    score += 100;
+                    Crafty("Score").each(function () { 
+                        this.text(score)
+                    });
                     e[0].obj.destroy(); // Destrói o inimigo
                     this.destroy(); // Destrói a bala
                 })
@@ -176,6 +188,10 @@ $(document).ready(function() {
         })
         .onHit('Enemy', function(e) {
             clearInterval(interval);
+            score -= 1000;
+            Crafty("Score").each(function () { 
+                this.text(score)
+            });
             Crafty.scene('main');
         })
         .rightControls(3);
@@ -217,7 +233,10 @@ $(document).ready(function() {
                     this.x += this.dX;
                     if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
                         this.destroy();
-                        console.log('removeu o inimigo')
+                        score -= 100;
+                        Crafty("Score").each(function () { 
+                            this.text(score)
+                        });
                     }
                 });
             }
