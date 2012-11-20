@@ -1,6 +1,7 @@
 $(document).ready(function() {
     var round = 1;
     var score = 0;
+    var angle = 0;
     Crafty.init(800, 576);
     Crafty.canvas.init();
     Crafty.sprite(32, "img/game_32.png", {
@@ -124,10 +125,10 @@ $(document).ready(function() {
             y:0
         })
         .bind('MouseMove',function(e){
-            
-            })
+            angle = Math.atan2((e.realX-player.x),(e.realY-player.y));
+        })
         .bind('Click',function(e) {
-            console.log(e);
+            fire();
         });
         generateWorld();
         Crafty.e("Score, DOM, 2D, Text")
@@ -148,33 +149,7 @@ $(document).ready(function() {
         })
         .bind('KeyDown', function(e) {
             if(e.keyCode === Crafty.keys.SPACE) {
-                console.log('Blast!');
-                Crafty.e("2D, DOM, Color, Collision")
-                .color('rgb(0,0,0)')
-                .attr({
-                    x: this._x, 
-                    y: this._y+10, 
-                    w: 4, 
-                    h: 4, 
-                    dX: 10, 
-                    dY: 0
-                })
-                .bind('EnterFrame', function () {
-                    this.x += this.dX;
-                    this.y += this.dY;
-                    if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
-                        this.destroy();
-                        score--;
-                    }
-                })
-                .onHit('Enemy', function (e) {
-                    score += 100;
-                    Crafty("Score").each(function () { 
-                        this.text(score)
-                    });
-                    e[0].obj.destroy(); // Destrói o inimigo
-                    this.destroy(); // Destrói a bala
-                })
+                fire();
             }
         })
         .onHit('Enemy', function(e) {
@@ -215,8 +190,9 @@ $(document).ready(function() {
                     dY: 0
                 })
                 .bind('EnterFrame', function () {
-                    this.y += this.dY;
-                    this.x += this.dX;
+                    var da = Math.atan2((player.x-this.x),(player.y-this.y));
+                    this.x += 4*Math.sin(da);
+                    this.y += 4*Math.cos(da);
                     if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
                         this.destroy();
                         score -= 100;
@@ -229,14 +205,43 @@ $(document).ready(function() {
         }
     }
     
-    function loser()
-    {
+    function loser() {
         clearInterval(interval);
         score -= 1000;
         Crafty("Score").each(function () { 
             this.text(score)
         });
         Crafty.scene('main');
+    }
+    
+    function fire() {
+        //        console.log('Blast!');
+        Crafty.e("2D, DOM, Color, Collision")
+        .color('rgb(0,0,0)')
+        .attr({
+            x: player.x, 
+            y: player.y+10, 
+            w: 4, 
+            h: 4, 
+            dX: 10*Math.sin(angle), 
+            dY: 10*Math.cos(angle)
+        })
+        .bind('EnterFrame', function () {
+            this.x += this.dX;
+            this.y += this.dY;
+            if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
+                this.destroy();
+                score--;
+            }
+        })
+        .onHit('Enemy', function (e) {
+            score += 100;
+            Crafty("Score").each(function () { 
+                this.text(score)
+            });
+            e[0].obj.destroy(); // Destrói o inimigo
+            this.destroy(); // Destrói a bala
+        })
     }
     
 });
