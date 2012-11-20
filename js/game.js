@@ -38,11 +38,10 @@ $(document).ready(function() {
                     }
                 })
             .bind('Moved', function(from) {
-                if(this.hit('solid')){
-                    this.attr({
-                        x: from.x, 
-                        y:from.y
-                    });
+                if((from.x > Crafty.viewport.width) || (from.x < 0) ||
+                    (from.y < 0) || (from.y > (Crafty.viewport.height - 32)))
+                    {
+                    loser();
                 }
             });
             return this;
@@ -78,14 +77,6 @@ $(document).ready(function() {
                         this.stop();
                     }
                 })
-            .bind('Moved', function(from) {
-                if(this.hit('solid')){
-                    this.attr({
-                        x: from.x, 
-                        y:from.y
-                    });
-                }
-            });
             return this;
         }
     })
@@ -187,12 +178,7 @@ $(document).ready(function() {
             }
         })
         .onHit('Enemy', function(e) {
-            clearInterval(interval);
-            score -= 1000;
-            Crafty("Score").each(function () { 
-                this.text(score)
-            });
-            Crafty.scene('main');
+            loser();
         })
         .rightControls(3);
         
@@ -241,6 +227,16 @@ $(document).ready(function() {
                 });
             }
         }
+    }
+    
+    function loser()
+    {
+        clearInterval(interval);
+        score -= 1000;
+        Crafty("Score").each(function () { 
+            this.text(score)
+        });
+        Crafty.scene('main');
     }
     
 });
