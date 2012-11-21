@@ -201,9 +201,15 @@ $(document).ready(function() {
                     this.y += round.enemy.speed*Math.cos(da);
                     if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
                         this.destroy();
-                        refreshScore(-100)
+                        refreshScore(-100);
                     }
-                });
+                })
+                .onHit('Enemy', function(e) {
+                    if(e.length == 2) {
+                        e[0].obj.x += 1;
+                        e[1].obj.x -= 1;
+                    }
+                })
             }
         }
     }
