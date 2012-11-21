@@ -1,7 +1,15 @@
 $(document).ready(function() {
-    var round = 1;
+    var round = {
+        speed: 5000,
+        enemy: {
+            amount: 10,
+            speed: 2
+        }
+    };
     var score = 0;
     var angle = 0;
+    var interval;
+    
     Crafty.init(800, 576);
     Crafty.canvas.init();
     Crafty.sprite(32, "img/game_32.png", {
@@ -53,9 +61,6 @@ $(document).ready(function() {
             this.requires("SpriteAnimation, Collision")
             .animate("walk_left", [[6,1], [7,1], [8,1]])
             .animate("walk_left", 3, -1)
-            //            .animate("walk_right", [[6,2], [7,2], [8,2]])
-            //            .animate("walk_up", [[6,3], [7,3], [8,3]])
-            //            .animate("walk_down", [[6,0], [7,0], [8,0]])
             .bind("NewDirection",
                 function (direction) {
                     if (direction.x < 0) {
@@ -85,7 +90,7 @@ $(document).ready(function() {
         init: function() {
             this.requires('Multiway');
         },
-
+        
         rightControls: function(speed) {
             this.multiway(speed, {
                 W: -90, 
@@ -113,7 +118,7 @@ $(document).ready(function() {
             'text-align': 'center',
             'color': '#FFF'
         });
-       
+    
     });
     Crafty.scene('loading');
     
@@ -128,7 +133,9 @@ $(document).ready(function() {
             angle = Math.atan2((e.realX-player.x),(e.realY-player.y));
         })
         .bind('Click',function(e) {
-            fire();
+            if(!Crafty.isPaused()) {
+                fire();
+            }
         });
         generateWorld();
         Crafty.e("Score, DOM, 2D, Text")
@@ -149,7 +156,12 @@ $(document).ready(function() {
         })
         .bind('KeyDown', function(e) {
             if(e.keyCode === Crafty.keys.SPACE) {
-                fire();
+                Crafty.pause();
+                if(Crafty.isPaused()) {
+                    roundPause();
+                } else {
+                    roundPlay();
+                }
             }
         })
         .onHit('Enemy', function(e) {
@@ -158,12 +170,8 @@ $(document).ready(function() {
         .rightControls(3);
         
         
-        generateEnemies(1);
-        interval = setInterval(function() {
-            round += 0.01;
-            generateEnemies(Math.floor(round));
-        }, 1000);
-        
+        generateEnemies(round.enemy.amount);
+        roundPlay();
     })
     
     function generateWorld() {
@@ -185,20 +193,15 @@ $(document).ready(function() {
                 .attr({
                     x: parseInt(Crafty.viewport.width)-40, 
                     y: Crafty.math.randomInt(0, Crafty.viewport.height), 
-                    z: 1,
-                    dX: -2,
-                    dY: 0
+                    z: 1
                 })
                 .bind('EnterFrame', function () {
                     var da = Math.atan2((player.x-this.x),(player.y-this.y));
-                    this.x += 4*Math.sin(da);
-                    this.y += 4*Math.cos(da);
+                    this.x += round.enemy.speed*Math.sin(da);
+                    this.y += round.enemy.speed*Math.cos(da);
                     if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
                         this.destroy();
-                        score -= 100;
-                        Crafty("Score").each(function () { 
-                            this.text(score)
-                        });
+                        refreshScore(-100)
                     }
                 });
             }
@@ -207,10 +210,7 @@ $(document).ready(function() {
     
     function loser() {
         clearInterval(interval);
-        score -= 1000;
-        Crafty("Score").each(function () { 
-            this.text(score)
-        });
+        refreshScore(-1000)
         Crafty.scene('main');
     }
     
@@ -231,17 +231,32 @@ $(document).ready(function() {
             this.y += this.dY;
             if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
                 this.destroy();
-                score--;
+                refreshScore(-10)
             }
         })
         .onHit('Enemy', function (e) {
-            score += 100;
-            Crafty("Score").each(function () { 
-                this.text(score)
-            });
+            refreshScore(100);
             e[0].obj.destroy(); // Destrói o inimigo
             this.destroy(); // Destrói a bala
         })
     }
     
+    function roundPlay() {
+        interval = setInterval(function() {
+            generateEnemies(round.enemy.amount);
+            round.enemy.amount++;
+            round.enemy.speed+=0.05;
+            round.speed+=500;
+        }, round.speed);
+    }
+    function roundPause() {
+        clearInterval(interval);
+    }
+    function refreshScore(s) {
+        score += s;
+        Crafty("Score").each(function () { 
+            this.text(score)
+        });
+    }
+
 });
