@@ -1,0 +1,22 @@
+Client
+    Cria tipo Hero e Enemies
+    Cria loading
+    Cria main stage
+    Call para atualizar a posição do jogador
+    Call para adicionar bullet
+    Call para remover bullet quando sai do stage
+    Call para remover bullet e inimigo ao colidirem
+    
+Server
+    Adiciona players na collection pelo evento de abri socket
+        id, posição
+    Remove player quando socket fecha
+    Adiciona inimigos na collection em um intervalo de tempo
+        id, posição
+    Method que remove bullet quando sai do stage
+    Method que remove bullet e inimigo ao colidirem
+    Method que adiciona bullets na collection
+        id, posição
+    Method que atualiza a posição do jogador pelo seu ID
+    Method que atualiza a posição do inimigo pelo seu ID
+    
