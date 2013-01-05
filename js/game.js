@@ -1,29 +1,153 @@
-$(document).ready(function() {
-    var round = {
-        speed: 5000,
-        enemy: {
-            amount: 10,
-            speed: 2
+var round = {
+    speed: 5000,
+    enemy: {
+        amount: 5,
+        speed: 2
+    }
+};
+var score = 0;
+var angle = 0;
+var left = -Math.PI/2;
+var up = Math.PI;
+var down = 2*Math.PI;
+var right = Math.PI/2;
+var dirs = [up, down];
+var interval;
+
+function generateWorld() {
+    for(i = 0; i < 16; i++) {
+        for(j = 0; j < 9; j++) {
+            var t = Crafty.math.randomInt(1, 3);
+            Crafty.e('2D, Canvas, SpriteAnimation, terrain1')
+            .animate('Terrain', parseInt(Math.random()*2), 14+parseInt(Math.random()*2), 6)
+            .animate('Terrain', 500+parseInt(Math.random()*5000), -1)
+            .attr({
+                x: i * 64, 
+                y: j * 64
+            });
         }
-    };
-    var score = 0;
-    var angle = 0;
-    var left = -Math.PI/2;
-    var up = Math.PI;
-    var down = 2*Math.PI;
-    var right = Math.PI/2;
-    var dirs = [up, down];
-    var interval;
+    }
+    generateObstacles();
+}
     
+function generateObstacles() {
+    for(i = 0; i < 15; i++) {
+        Crafty.e("2D, DOM, obstacle, Color, Collision")
+        .color('#011322')
+        .attr({
+            x: Crafty.math.randomInt(1, 10) * 64, 
+            y: Crafty.math.randomInt(1, 7) * 64,
+            w: 64,
+            h: 64
+        });
+    }
+}
+    
+function generateEnemies(n) {
+    if(n > 0) {
+        for(i = 0; i < n; i++) {
+            var enemy = Crafty.e('2D, Canvas, enemy, Enemy, Animate, Collision')
+            .attr({
+                x: Crafty.viewport.width-(Crafty.math.randomInt(0, 4)*64), 
+                y: Crafty.math.randomInt(0, 9) * 64, 
+                z: 1,
+                da: -Math.PI/2,
+                interval: null
+            })
+            .bind('EnterFrame', function () {
+                    
+                if(this.hit('obstacle')){
+                    if(this.da == left) {
+                        this.da = dirs[Crafty.math.randomInt(0, 1)];
+                        this.x += 1;
+                        this.y += round.enemy.speed*Math.cos(this.da);
+                    }
+                } else {
+                    this.da = left;
+                }
+                    
+                //                    if(this.y > (Crafty.viewport.height-64) || this.y < 0 || this.x > (Crafty.viewport.width-64)) {
+                //                        this.da = Crafty.math.randomInt(-4,0)*Math.PI/2;
+                //                    }
+                if(this.x < 0) {
+                    refreshScore(-100);
+                    this.destroy();
+                }
+                    
+                this.x += round.enemy.speed*Math.sin(this.da);
+                this.y += round.enemy.speed*Math.cos(this.da);
+                    
+            })
+        }
+    }
+}
+    
+function loser() {
+    clearInterval(interval);
+    refreshScore(-1000)
+    Crafty.scene('main');
+}
+    
+function fire() {
+    //        console.log('Blast!');
+    Crafty.e("2D, DOM, Color, Collision")
+    .color('rgb(180,60,56)')
+    .attr({
+        x: player.x+30, 
+        y: player.y+20, 
+        w: 16, 
+        h: 16, 
+        dX: 10*Math.sin(angle), 
+        dY: 10*Math.cos(angle)
+    })
+    .bind('EnterFrame', function () {
+        this.x += this.dX;
+        this.y += this.dY;
+        if(this.hit('obstacle')) {
+            this.destroy();
+        }
+        if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
+            this.destroy();
+            refreshScore(-10)
+        }
+    })
+    .onHit('Enemy', function (e) {
+        e[0].obj.destroy(); // Destrói o inimigo
+        this.destroy(); // Destrói a bala
+        refreshScore(100);
+    })
+}
+    
+function roundPlay() {
+    interval = setInterval(function() {
+        generateEnemies(round.enemy.amount);
+        round.enemy.amount++;
+        round.enemy.speed+=0.05;
+        round.speed-=5;
+    }, round.speed);
+}
+function roundPause() {
+    clearInterval(interval);
+}
+function refreshScore(s) {
+    score += s;
+    Crafty("Score").each(function () { 
+        this.text(score)
+    });
+}
+    
+function startGame() {
+    $('#menu').remove();
     Crafty.init(1024, 576);
     Crafty.canvas.init();
-    Crafty.sprite(64, "img/game_64.png", {
+    Crafty.sprite(64, "img/game_64_glitches.png", {
         player: [0,4],
         enemy: [6,0],
         terrain1: [0,8],
         terrain2: [1,8],
         terrain3: [2,8],
         obstacle: [3,8]
+    //        obstacle: [0,11]
     });
     Crafty.c('Hero', {
         init:  function() {
@@ -111,7 +235,7 @@ $(document).ready(function() {
     });
     
     Crafty.scene('loading', function() {
-        Crafty.load(['img/game_32.png'], function () {
+        Crafty.load(['img/game_64_glitches.png'], function () {
             Crafty.scene('main'); //when everything is loaded, run the main scene
         });
         Crafty.background('#000');
@@ -130,7 +254,10 @@ $(document).ready(function() {
     });
     Crafty.scene('loading');
     
+    Crafty.audio.add("fire", "sounds/fire.wav");
+    
     Crafty.scene('main', function() {
+        Crafty.audio.play('fire', -1);
         Crafty.e("2D,Canvas,Color,Mouse").attr({
             w:Crafty.viewport.width,
             h:Crafty.viewport.height,
@@ -146,14 +273,15 @@ $(document).ready(function() {
             }
         });
         generateWorld();
-        Crafty.e("Score, DOM, 2D, Text")
+        Crafty.e("Score, DOM, 2D, Color, Text")
         .attr({
             x: 20, 
             y: 20, 
             w: 100, 
-            h: 20, 
+            h: 40, 
             score: 0
         })
+        .textColor('#ff4900')
         .text(score);
         
         player = Crafty.e('2D, Canvas, player, Controls, Hero, Animate, Collision')
@@ -193,126 +321,5 @@ $(document).ready(function() {
         generateEnemies(round.enemy.amount);
         roundPlay();
     })
-    
-    function generateWorld() {
-        for(i = 0; i < 16; i++) {
-            for(j = 0; j < 9; j++) {
-                var t = Crafty.math.randomInt(1, 3);
-                Crafty.e('2D, Canvas, terrain'+t)
-                .attr({
-                    x: i * 64, 
-                    y: j * 64
-                });
-            }
-        }
-        generateObstacles();
-    }
-    
-    function generateObstacles() {
-        for(i = 0; i < 15; i++) {
-            Crafty.e("2D, DOM, obstacle, Color, Collision")
-            .color('rgb(0,0,0)')
-            .attr({
-                x: Crafty.math.randomInt(1, 10) * 64, 
-                y: Crafty.math.randomInt(1, 7) * 64,
-                w: 60,
-                h: 60
-            });
-        }
-    }
-    
-    function generateEnemies(n) {
-        n= 1;
-        if(n > 0) {
-            for(i = 0; i < n; i++) {
-                var enemy = Crafty.e('2D, Canvas, enemy, Enemy, Animate, Collision')
-                .attr({
-                    x: Crafty.viewport.width-(Crafty.math.randomInt(0, 4)*64), 
-                    y: Crafty.math.randomInt(0, 9) * 64, 
-                    z: 1,
-                    da: -Math.PI/2,
-                    interval: null
-                })
-                .bind('EnterFrame', function () {
-                    
-                    if(this.hit('obstacle')){
-                        if(this.da == left) {
-                            this.da = dirs[Crafty.math.randomInt(0, 1)];
-                            this.x += 1;
-                            this.y += round.enemy.speed*Math.cos(this.da);
-                        }
-                    } else {
-                        this.da = left;
-                    }
-                    
-//                    if(this.y > (Crafty.viewport.height-64) || this.y < 0 || this.x > (Crafty.viewport.width-64)) {
-//                        this.da = Crafty.math.randomInt(-4,0)*Math.PI/2;
-//                    }
-                    if(this.x < 0) {
-                        refreshScore(-100);
-                        this.destroy();
-                    }
-                    
-                    this.x += round.enemy.speed*Math.sin(this.da);
-                    this.y += round.enemy.speed*Math.cos(this.da);
-                    
-                })
-            }
-        }
-    }
-    
-    function loser() {
-        clearInterval(interval);
-        refreshScore(-1000)
-        Crafty.scene('main');
-    }
-    
-    function fire() {
-        //        console.log('Blast!');
-        Crafty.e("2D, DOM, Color, Collision")
-        .color('rgb(180,60,56)')
-        .attr({
-            x: player.x, 
-            y: player.y+10, 
-            w: 16, 
-            h: 16, 
-            dX: 10*Math.sin(angle), 
-            dY: 10*Math.cos(angle)
-        })
-        .bind('EnterFrame', function () {
-            this.x += this.dX;
-            this.y += this.dY;
-            if(this.hit('obstacle')) {
-                this.destroy();
-            }
-            if(this._x > Crafty.viewport.width || this._x < 0 || this._y > Crafty.viewport.height || this._y < 0) {
-                this.destroy();
-                refreshScore(-10)
-            }
-        })
-        .onHit('Enemy', function (e) {
-            e[0].obj.destroy(); // Destrói o inimigo
-            this.destroy(); // Destrói a bala
-            refreshScore(100);
-        })
-    }
-    
-    function roundPlay() {
-        interval = setInterval(function() {
-            generateEnemies(round.enemy.amount);
-            round.enemy.amount++;
-            round.enemy.speed+=0.05;
-            round.speed+=500;
-        }, round.speed);
-    }
-    function roundPause() {
-        clearInterval(interval);
-    }
-    function refreshScore(s) {
-        score += s;
-        Crafty("Score").each(function () { 
-            this.text(score)
-        });
-    }
+}
 
-});
